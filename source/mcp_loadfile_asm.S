@@ -4,7 +4,6 @@ MCP_LoadFile_patch:
     .arm
     ldr R0, [R7,#0xC]
     add r8, lr, #4
-    @ldr r12,=0x0501CAA9 @=real_MCP_LoadFile
     ldr r12, =_MCP_LoadFile_patch
     blx r12
     MOVS R4, R0
