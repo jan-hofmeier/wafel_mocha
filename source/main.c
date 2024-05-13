@@ -9,6 +9,7 @@
 #include <wafel/ios/svc.h>
 
 #include "fs_patches.h"
+#include "kernel_patches.h"
 
 // This fn runs before everything else in kernel mode.
 // It should be used to do extremely early patches
@@ -18,6 +19,7 @@ __attribute__((target("arm")))
 void kern_main()
 {
     apply_fs_patches();
+    apply_kernel_patches();
 }
 
 // This fn runs before MCP's main thread, and can be used

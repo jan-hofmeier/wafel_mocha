@@ -84,9 +84,12 @@ void apply_fs_patches(void){
 
     // patch /dev/odm IOCTL 0x06 to return the disc key if in_buf[0] > 2.
     ASM_PATCH_K(0x10739948, 
-                "mov r11, 1\n"
-                "mov r7, 0x20\n"
+                "mov r11, #1\n"
+                "mov r7, #0x20\n"
     );
     BRANCH_PATCH_K(0x10739950, 0x107399a8);
 
+    //TODO FAT32 patches
+
+    
 }
