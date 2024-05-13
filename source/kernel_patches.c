@@ -1,7 +1,7 @@
 #include <wafel/patch.h>
 #include "thread.h"
 #include "kernel_commands.h"
-#include "utils.h"
+#include "kernel_utils.h"
 
 ThreadContext_t **currentThreadContext = (ThreadContext_t **) 0x08173ba0;
 uint32_t *domainAccessPermissions      = (uint32_t *) 0x081a4000;
@@ -51,7 +51,8 @@ static int kernel_syscall_0x81(u32 command, u32 arg1, u32 arg2, u32 arg3) {
 
 void apply_kernel_patches(void){
     // is this needed?
+    // patch kernel dev node registration
     U32_PATCH_K(0x081430B4, 1);
-    
+
     BRANCH_PATCH_K(0x0812CD2C, kernel_syscall_0x81);
 }
