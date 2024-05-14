@@ -15,14 +15,16 @@
  *   - on failure, again with LOAD_FILE_SYS_DATA_CODE
  * - each request routes here where we can do whatever
  */
-
+#include <wafel/trampoline.h>
+#include <wafel/ios/svc.h>
+#include <wafel/services/fsa.h>
+#include "svc.h"
 #include "ipc_defs.h"
 #include "kernel_commands.h"
 #include "fsa.h"
 //#include "imports.h"
 #include "ipc_types.h"
-//#include "logger.h"
-//#include "svc.h"
+#include "logger.h"
 #include <mocha/commands.h>
 #include <stdio.h>
 #include <string.h>
@@ -138,7 +140,7 @@ void RemoveByLifetime(ReplacementLifetime lifetime) {
                                 gDynamicReplacements[i], gDynamicReplacements[i]->lifetime,
                                 gDynamicReplacements[i]->type, gDynamicReplacements[i]->replaceName,
                                 gDynamicReplacements[i]->replacementPath);*/
-            svcFree(0xCAFF, gDynamicReplacements[i]);
+            iosFree(0xCAFF, gDynamicReplacements[i]);
             gDynamicReplacements[i] = NULL;
         }
     }
@@ -170,9 +172,9 @@ MCP_LoadCustomFile(LoadTargetDevice target, char *path, uint32_t filesize, uint3
     char mountpath[] = "/vol/storage_iosu_homebrew";
 
     if (target == MOCHA_LOAD_TARGET_DEVICE_SD) {
-        int fsa_h = svcOpen("/dev/fsa", 0);
+        int fsa_h = iosOpen("/dev/fsa", 0);
         FSA_Mount(fsa_h, "/dev/sdcard01", mountpath, 2, NULL, 0);
-        svcClose(fsa_h);
+        iosClose(fsa_h);
 
         strncpy(filepath, mountpath, sizeof(filepath) - 1);
         strncat(filepath, "/", (sizeof(filepath) - 1) - strlen(filepath));
@@ -200,9 +202,9 @@ MCP_LoadCustomFile(LoadTargetDevice target, char *path, uint32_t filesize, uint3
     // Unmount the sd card once the whole file has been read or there was an error
     if ((result >= 0 && result < 0x400000) || result < 0) {
         if (target == MOCHA_LOAD_TARGET_DEVICE_SD) {
-            int fsa_h = svcOpen("/dev/fsa", 0);
+            int fsa_h = iosOpen("/dev/fsa", 0);
             FSA_Unmount(fsa_h, mountpath, 0x80000002);
-            svcClose(fsa_h);
+            iosClose(fsa_h);
         }
         if (isRPX) {
             // if we have read less than 0x400000 bytes we have read the whole file.
@@ -214,7 +216,7 @@ MCP_LoadCustomFile(LoadTargetDevice target, char *path, uint32_t filesize, uint3
     return result;
 }
 
-int DoSDRedirectionByPath(ipcmessage *msg, MCPLoadFileRequest *request) {
+int DoSDRedirectionByPath(ipcmessage *msg, MCPLoadFileRequest *request, int (*real_MCP_LoadFile)(ipcmessage*)) {
     if (strlen(request->name) > 1 && request->name[0] == '~' && request->name[1] == '|') {
         // OSDynload_Acquire is cutting of the name right after the last '/'. This means "~/wiiu/libs/test.rpl" would simply become "test.rpl".
         // To still have directories, Mocha expects '|' instead of '/'. (Modules like the AromaBaseModule might handle this transparent for the user.)
@@ -378,10 +380,10 @@ int DoReplacementByStruct(ipcmessage *msg, MCPLoadFileRequest *request, const RP
                               request->pos, EndsWith(request->name, ".rpx"));
 }
 
-int MCPLoadFileReplacement(ipcmessage *msg, MCPLoadFileRequest *request) {
+int MCPLoadFileReplacement(ipcmessage *msg, MCPLoadFileRequest *request, int (*real_MCP_LoadFile)(ipcmessage*)) {
     int res;
 
-    if ((res = DoSDRedirectionByPath(msg, request)) >= 0) {
+    if ((res = DoSDRedirectionByPath(msg, request, real_MCP_LoadFile)) >= 0) {
         // DEBUG_FUNCTION_LINE("We replaced by path!\n");
         return res;
     }
@@ -441,7 +443,7 @@ bool hasHomebrewReplacements() {
     return true;
 }
 
-int MCP_LoadFile_patch(ipcmessage *msg, int r1, int r2, int r3, int (*real_MCP_LoadFile)(ipcmessage *msg)) {
+int MCP_LoadFile_patch(ipcmessage *msg, int r1, int r2, int r3, int (*real_MCP_LoadFile)(ipcmessage*)) {
     MCPLoadFileRequest *request = (MCPLoadFileRequest *) msg->ioctl.buffer_in;
 
     // we only care about Foreground app/COS-MASTER for now.
@@ -463,7 +465,7 @@ int MCP_LoadFile_patch(ipcmessage *msg, int r1, int r2, int r3, int (*real_MCP_L
     }
 
     int res;
-    if ((res = MCPLoadFileReplacement(msg, request)) >= 0) {
+    if ((res = MCPLoadFileReplacement(msg, request, real_MCP_LoadFile)) >= 0) {
         if (requestIsRPX) {
             sReplacedLastRPX = true;
         }
@@ -474,9 +476,7 @@ int MCP_LoadFile_patch(ipcmessage *msg, int r1, int r2, int r3, int (*real_MCP_L
     return res;
 }
 
-int MCP_ReadCOSXml_patch(uint32_t u1, uint32_t u2, MCPPPrepareTitleInfo *xmlData, int r3) {
-    int (*const real_MCP_ReadCOSXml_patch)(uint32_t u1, uint32_t u2, MCPPPrepareTitleInfo * xmlData) = (void *) 0x050024ec + 1; //+1 for thumb
-
+int MCP_ReadCOSXml_patch(uint32_t u1, uint32_t u2, MCPPPrepareTitleInfo *xmlData, int r3, int (*real_MCP_ReadCOSXml_patch)(uint32_t, uint32_t, MCPPPrepareTitleInfo*)) {
     int res = real_MCP_ReadCOSXml_patch(u1, u2, xmlData);
 
     /*
@@ -553,7 +553,16 @@ int MCP_ReadCOSXml_patch(uint32_t u1, uint32_t u2, MCPPPrepareTitleInfo *xmlData
     return res;
 }
 
-extern int _startMainThread(void);
+int _startMainThread(void) {
+    static int threadsStarted = 0;
+    if (threadsStarted == 0) {
+        threadsStarted = 1;
+
+        //wupserver_init();
+        ipc_init();
+    }
+    return 0;
+}
 
 /*  RPX replacement! Call this ioctl to replace the next loaded RPX with an arbitrary path.
     DO NOT RETURN 0, this affects the codepaths back in the IOSU code */
@@ -579,7 +588,7 @@ int _MCP_ioctl100_patch(ipcmessage *msg) {
                     uint32_t fileoffset = msg->ioctl.buffer_in[0x0C / 0x04];
                     char *str_ptr       = (char *) &msg->ioctl.buffer_in[0x10 / 0x04];
 
-                    RPXFileReplacements *newReplacement = svcAlloc(0xCAFF, sizeof(RPXFileReplacements));
+                    RPXFileReplacements *newReplacement = iosAlloc(0xCAFF, sizeof(RPXFileReplacements));
                     if (newReplacement == NULL) {
                         DEBUG_FUNCTION_LINE("Failed to allocate memory on heap\n");
                         return 22;
@@ -596,7 +605,7 @@ int _MCP_ioctl100_patch(ipcmessage *msg) {
 
                     if (!addDynamicReplacement(newReplacement)) {
                         DEBUG_FUNCTION_LINE("addDynamicReplacement failed, abort redirecting %s\n", newReplacement->replacementPath);
-                        svcFree(0xCAFF, newReplacement);
+                        iosFree(0xCAFF, newReplacement);
                         return 22;
                     }
 
@@ -637,16 +646,16 @@ int _MCP_ioctl100_patch(ipcmessage *msg) {
 
                 usleep(1000 * 10);
 
-                int handle = svcOpen("/dev/testproc1", 0);
+                int handle = iosOpen("/dev/testproc1", 0);
                 if (handle > 0) {
-                    svcResume(handle);
-                    svcClose(handle);
+                    iosIpcResume(handle);
+                    iosClose(handle);
                 }
 
-                handle = svcOpen("/dev/usb_syslog", 0);
+                handle = iosOpen("/dev/usb_syslog", 0);
                 if (handle > 0) {
-                    svcResume(handle);
-                    svcClose(handle);
+                    iosIpcResume(handle);
+                    iosClose(handle);
                 }
 
                 bool showCompleteLog = msg->ioctl.buffer_in && msg->ioctl.length_in >= 0x08 && msg->ioctl.buffer_in[1] == 1;
@@ -676,4 +685,9 @@ int _MCP_ioctl100_patch(ipcmessage *msg) {
         return 29;
     }
     return 0;
+}
+
+void MCP_ioctl100_patch(trampoline_t_state *state){
+    ipcmessage *msg = (ipcmessage*) (state->r[7] + 0xC);
+    state->r[0] = _MCP_ioctl100_patch(msg);
 }

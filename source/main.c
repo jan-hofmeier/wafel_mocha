@@ -18,8 +18,10 @@
 __attribute__((target("arm")))
 void kern_main()
 {
+    debug_printf("Applying Mocha patches\n");
     apply_fs_patches();
     apply_kernel_patches();
+    debug_printf("Mocha patches finished\n");
 }
 
 // This fn runs before MCP's main thread, and can be used
