@@ -24,9 +24,9 @@
 
 #include <wafel/services/fsa.h>
 #include <wafel/ios/svc.h>
+#include <wafel/ios/ipc_types.h>
 #include "kernel_commands.h"
-//#include "dk.h"
-#include "ipc_types.h"
+#include "dk.h"
 #include "fsa.h"
 //#include "imports.h"
 #include "logger.h"
@@ -416,7 +416,7 @@ static u32 ipc_thread(void *) {
 
     int queueId = iosCreateMessageQueue(messageQueue, sizeof(messageQueue) / 4);
 
-    if (svcRegisterResourceManager("/dev/iosuhax", queueId) == 0) {
+    if (iosRegisterResourceManager("/dev/iosuhax", queueId) == 0) {
         while (!ipcNodeKilled) {
             res = iosReceiveMessage(queueId, &message, 0);
             if (res < 0) {
@@ -447,7 +447,7 @@ static u32 ipc_thread(void *) {
                 }
             }
 
-            svcResourceReply(message, res);
+            iosResourceReply(message, res);
         }
     }
 

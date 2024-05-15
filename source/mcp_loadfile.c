@@ -20,10 +20,10 @@
 #include <wafel/services/fsa.h>
 #include "svc.h"
 #include "ipc_defs.h"
+#include "ipc.h"
 #include "kernel_commands.h"
 #include "fsa.h"
 //#include "imports.h"
-#include "ipc_types.h"
 #include "logger.h"
 #include <mocha/commands.h>
 #include <stdio.h>

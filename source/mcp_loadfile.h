@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ipc_types.h"
+#include <wafel/ios/ipc_types.h>
 #include "ipc_defs.h"
 
 int MCP_LoadFile_patch(ipcmessage *msg, int r1, int r2, int r3, int (*real_MCP_LoadFile)(ipcmessage *msg));

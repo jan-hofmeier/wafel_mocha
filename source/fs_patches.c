@@ -1,8 +1,8 @@
 
 #include <wafel/trampoline.h>
 #include <wafel/patch.h>
+#include <wafel/ios/ipc_types.h>
 #include "fsa.h"
-#include "ipc_types.h"
 
 #define PATCHED_CLIENT_HANDLES_MAX_COUNT 0x40
 
