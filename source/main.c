@@ -10,6 +10,7 @@
 
 #include "fs_patches.h"
 #include "kernel_patches.h"
+#include "mcp_patches.h"
 
 // This fn runs before everything else in kernel mode.
 // It should be used to do extremely early patches
@@ -19,8 +20,9 @@ __attribute__((target("arm")))
 void kern_main()
 {
     debug_printf("Applying Mocha patches\n");
-    apply_fs_patches();
     apply_kernel_patches();
+    apply_fs_patches();
+    apply_mcp_patches();
     debug_printf("Mocha patches finished\n");
 }
 
