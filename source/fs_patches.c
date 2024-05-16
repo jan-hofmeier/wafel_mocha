@@ -100,7 +100,7 @@ void fsa_ioctl0x28_hook(trampoline_state *s) {
 }
 
 void apply_fs_patches(void){
-    U32_PATCH_K(0x10701248, "mov r5, #0");
+    ASM_PATCH_K(0x10701248, "mov r5, #0");
     trampoline_hook_before(0x10701248, fsa_ioctl0x28_hook);
     trampoline_blreplace(0x10704540, fsa_ioctlv_hook);
     trampoline_blreplace(0x107044f0, fsa_ioctl_hook);

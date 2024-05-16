@@ -1,6 +1,3 @@
-#ifndef FS_PATCHES_H
-#define FS_PATCHES_H
+#pragma once
 
 void apply_fs_patches(void);
-
-#endif
