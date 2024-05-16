@@ -108,7 +108,7 @@ static int handleServer(int connfd) {
         }
 
         // wait until the timer sends a message
-        uint32_t message;
+        ipcmessage *message;
         if (iosReceiveMessage(queueId, &message, 0) < 0) {
             printf("DK: failed to receive message\n");
             break;
@@ -256,7 +256,7 @@ static int handleServer(int connfd) {
     return -1;
 }
 
-static int dkThread(void *) {
+static u32 dkThread(void *) {
     printf("DK: thread started\n");
     threadRunning = 1;
 
