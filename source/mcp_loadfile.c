@@ -96,6 +96,8 @@ typedef struct RPXFileReplacements {
 static bool gMemHookCompleted = false;
 static bool sReplacedLastRPX  = false;
 
+static char environmentPath[] = "fs:/vol/external01/wiiu/environments/aroma";
+
 
 // Dynamic replacements have priority over default replacements
 static RPXFileReplacements *gDynamicReplacements[5] = {};
@@ -624,7 +626,7 @@ int _MCP_ioctl100_patch(ipcmessage *msg) {
             }
             case IPC_CUSTOM_COPY_ENVIRONMENT_PATH: {
                 if (msg->ioctl.buffer_io && msg->ioctl.length_io >= 0x100) {
-                    strncpy((char *) msg->ioctl.buffer_io, (void *) 0x0511FF00, 0xFF);
+                    strncpy((char *) msg->ioctl.buffer_io, environmentPath, msg->ioctl.length_io);
                     return 0;
                 } else {
                     return 29;
