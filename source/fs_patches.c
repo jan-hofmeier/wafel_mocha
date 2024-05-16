@@ -1,7 +1,7 @@
 
 #include <wafel/trampoline.h>
 #include <wafel/patch.h>
-#include <wafel/ios/ipc_types.h>
+#include <wafel/ios/svc.h>
 #include "fsa.h"
 
 #define PATCHED_CLIENT_HANDLES_MAX_COUNT 0x40
@@ -77,7 +77,31 @@ static int fsa_ios_close_hook(uint32_t fd, ResourceRequest *request, int r2, int
     return org_ios_close(fd, request);
 }
 
+void fsa_ioctl0x28_hook(trampoline_state *s) {
+    FSAClientHandle *handle = (FSAClientHandle*)s->r[10];
+    void *request = (void*)s->r[11];
+    int res = -5;
+    for (int i = 0; i < PATCHED_CLIENT_HANDLES_MAX_COUNT; i++) {
+        if (patchedClientHandles[i] == handle) {
+            res = 0;
+            break;
+        }
+        if (patchedClientHandles[i] == 0) {
+            patchedClientHandles[i] = handle;
+            res                     = 0;
+            break;
+        }
+    }
+
+    iosResourceReply(request, res);
+    //s->r[5] = 0;
+    s->r[0] = 0;
+    s->lr = 0x10701194;
+}
+
 void apply_fs_patches(void){
+    U32_PATCH_K(0x10701248, "mov r5, #0");
+    trampoline_hook_before(0x10701248, fsa_ioctl0x28_hook);
     trampoline_blreplace(0x10704540, fsa_ioctlv_hook);
     trampoline_blreplace(0x107044f0, fsa_ioctl_hook);
     trampoline_blreplace(0x10704458, fsa_ios_close_hook);
