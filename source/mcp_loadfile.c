@@ -357,8 +357,7 @@ int DoReplacementByStruct(ipcmessage *msg, MCPLoadFileRequest *request, const RP
 
     LoadTargetDevice target = MOCHA_LOAD_TARGET_DEVICE_NONE;
     if (curReplacement->relativeTo == PATH_RELATIVE_TO_ENVIRONMENT) {
-        char *environmentPath = &((char *) 0x0511FF00)[19];
-        snprintf(_rpxpath, sizeof(_rpxpath) - 1, "%s/%s", environmentPath, curReplacement->replacementPath); // Copy in environment path
+        snprintf(_rpxpath, sizeof(_rpxpath) - 1, "%s/%s", environmentPath+19, curReplacement->replacementPath); // Copy in environment path
         target = MOCHA_LOAD_TARGET_DEVICE_SD;
     } else if (curReplacement->relativeTo == PATH_RELATIVE_TO_SD_ROOT) {
         strncpy(_rpxpath, curReplacement->replacementPath, sizeof(_rpxpath) - 1);
