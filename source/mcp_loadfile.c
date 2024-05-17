@@ -163,6 +163,8 @@ static int
 MCP_LoadCustomFile(LoadTargetDevice target, char *path, uint32_t filesize, uint32_t fileoffset, void *buffer_out,
                    uint32_t buffer_len,
                    uint32_t pos, bool isRPX) {
+
+    debug_printf("MCP_LoadCustomFile\n");
     if (path == NULL || (filesize > 0 && (pos > filesize))) {
         return 0;
     }
@@ -355,6 +357,8 @@ const RPXFileReplacements *GetCurrentRPXReplacement(MCPLoadFileRequest *request,
 int DoReplacementByStruct(ipcmessage *msg, MCPLoadFileRequest *request, const RPXFileReplacements *curReplacement) {
     char _rpxpath[256] = {};
 
+    debug_printf("DoReplacementByStruct replacement: %s %s\n", curReplacement->replacementPath, curReplacement->replaceName);
+
     LoadTargetDevice target = MOCHA_LOAD_TARGET_DEVICE_NONE;
     if (curReplacement->relativeTo == PATH_RELATIVE_TO_ENVIRONMENT) {
         snprintf(_rpxpath, sizeof(_rpxpath) - 1, "%s/%s", environmentPath+19, curReplacement->replacementPath); // Copy in environment path
@@ -383,7 +387,7 @@ int DoReplacementByStruct(ipcmessage *msg, MCPLoadFileRequest *request, const RP
 
 int MCPLoadFileReplacement(ipcmessage *msg, MCPLoadFileRequest *request, int (*real_MCP_LoadFile)(ipcmessage*)) {
     int res;
-
+    debug_printf("MCPLoadFileReplacement\n");
     if ((res = DoSDRedirectionByPath(msg, request, real_MCP_LoadFile)) >= 0) {
         // DEBUG_FUNCTION_LINE("We replaced by path!\n");
         return res;
@@ -452,7 +456,7 @@ int MCP_LoadFile_patch(ipcmessage *msg, int r1, int r2, int r3, int (*real_MCP_L
         // DEBUG_FUNCTION_LINE("Not for pid 7, lets ignore\n");
         return real_MCP_LoadFile(msg);
     }
-
+    debug_printf("MCP_LoadFile_patch: %s\n", request->name);
     bool requestIsRPX = EndsWith(request->name, ".rpx");
 
     // Check if a fresh RPX is loaded
@@ -470,14 +474,18 @@ int MCP_LoadFile_patch(ipcmessage *msg, int r1, int r2, int r3, int (*real_MCP_L
         if (requestIsRPX) {
             sReplacedLastRPX = true;
         }
+        debug_printf("MCP_LoadFile_patch finished with: %d\n", res);
         return res;
     }
 
+    debug_printf("real_MCP_LoadFile\n");
     res = real_MCP_LoadFile(msg);
+    debug_printf("MCP_LoadFile_patch finished with: %d\n", res);
     return res;
 }
 
 int MCP_ReadCOSXml_patch(uint32_t u1, uint32_t u2, MCPPPrepareTitleInfo *xmlData, int r3, int (*real_MCP_ReadCOSXml_patch)(uint32_t, uint32_t, MCPPPrepareTitleInfo*)) {
+    debug_printf("MCP_ReadCOSXml_patch\n");
     int res = real_MCP_ReadCOSXml_patch(u1, u2, xmlData);
 
     /*
@@ -554,23 +562,13 @@ int MCP_ReadCOSXml_patch(uint32_t u1, uint32_t u2, MCPPPrepareTitleInfo *xmlData
     return res;
 }
 
-int _startMainThread(void) {
-    static int threadsStarted = 0;
-    if (threadsStarted == 0) {
-        threadsStarted = 1;
-
-        //wupserver_init();
-        ipc_init();
-    }
-    return 0;
-}
-
 /*  RPX replacement! Call this ioctl to replace the next loaded RPX with an arbitrary path.
     DO NOT RETURN 0, this affects the codepaths back in the IOSU code */
 int _MCP_ioctl100_patch(ipcmessage *msg) {
+    debug_printf("_MCP_ioctl100_patch %p\n", msg);
     if (msg->ioctl.buffer_in && msg->ioctl.length_in >= 4) {
         int command = msg->ioctl.buffer_in[0];
-
+        debug_printf("_MCP_ioctl100_patch command: %d\n", command);
         switch (command) {
             case IPC_CUSTOM_MEN_RPX_HOOK_COMPLETED: {
                 gMemHookCompleted = true;
@@ -619,7 +617,7 @@ int _MCP_ioctl100_patch(ipcmessage *msg) {
                 break;
             }
             case IPC_CUSTOM_START_MCP_THREAD: {
-                _startMainThread();
+                ipc_startMainThread();
                 return 0;
                 break;
             }
@@ -692,4 +690,5 @@ void MCP_ioctl100_patch(trampoline_t_state *state){
     debug_printf("MCP_ioctl100_patch\n");
     ipcmessage *msg = *(ipcmessage**) (state->r[7] + 0xC);
     state->r[0] = _MCP_ioctl100_patch(msg);
+    debug_printf("MCP_ioctl100_patch finished with %d\n", state->r[0]);
 }

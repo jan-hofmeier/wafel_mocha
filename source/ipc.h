@@ -5,4 +5,6 @@ void ipc_init();
 
 void ipc_deinit();
 
+int ipc_startMainThread(void);
+
 #endif

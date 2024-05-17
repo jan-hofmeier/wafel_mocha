@@ -13,6 +13,10 @@
 #include "mcp_patches.h"
 #include "acp_patches.h"
 #include "bsp_patches.h"
+#include "ipc.h"
+
+
+int _startMainThread(void);
 
 // This fn runs before everything else in kernel mode.
 // It should be used to do extremely early patches
@@ -35,5 +39,5 @@ void kern_main()
 // It must return.
 void mcp_main()
 {
-
+    ipc_startMainThread();
 }

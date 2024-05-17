@@ -459,6 +459,7 @@ void ipc_init(void) {
     ipcNodeKilled = 0;
 
     int threadId = iosCreateThread(ipc_thread, 0, (u32 *) (threadStack + sizeof(threadStack)), sizeof(threadStack), 0x78, 1);
+    debug_printf("MOCHA ipc_init threadId: %d\n", threadId);
     if (threadId >= 0)
         iosStartThread(threadId);
 }
@@ -470,4 +471,15 @@ void ipc_deinit(void) {
         iosIoctl(fd, IOCTL_KILL_SERVER, &dummy, sizeof(dummy), &dummy, sizeof(dummy));
         iosClose(fd);
     }
+}
+
+int ipc_startMainThread(void) {
+    static int threadsStarted = 0;
+    if (threadsStarted == 0) {
+        threadsStarted = 1;
+
+        //wupserver_init();
+        ipc_init();
+    }
+    return 0;
 }
