@@ -689,6 +689,7 @@ int _MCP_ioctl100_patch(ipcmessage *msg) {
 }
 
 void MCP_ioctl100_patch(trampoline_t_state *state){
-    ipcmessage *msg = (ipcmessage*) (state->r[7] + 0xC);
+    debug_printf("MCP_ioctl100_patch\n");
+    ipcmessage *msg = *(ipcmessage**) (state->r[7] + 0xC);
     state->r[0] = _MCP_ioctl100_patch(msg);
 }
