@@ -77,9 +77,9 @@ static int fsa_ios_close_hook(uint32_t fd, ResourceRequest *request, int r2, int
     return org_ios_close(fd, request);
 }
 
-void fsa_ioctl0x28_hook(trampoline_state *s) {
-    FSAClientHandle *handle = (FSAClientHandle*)s->r[10];
-    void *request = (void*)s->r[11];
+__attribute__((target("arm")))
+int fsa_ioctl0x28_hook(FSAClientHandle *handle, void *request) {
+    debug_printf("fsa_ioctl0x28_hook\n");
     int res = -5;
     for (int i = 0; i < PATCHED_CLIENT_HANDLES_MAX_COUNT; i++) {
         if (patchedClientHandles[i] == handle) {
@@ -94,14 +94,14 @@ void fsa_ioctl0x28_hook(trampoline_state *s) {
     }
 
     iosResourceReply(request, res);
-    //s->r[5] = 0;
-    s->r[0] = 0;
-    s->lr = 0x10701194;
+    return 0;
 }
+
+extern void asm_fsa_ioctl0x28_hook();
 
 void apply_fs_patches(void){
     ASM_PATCH_K(0x10701248, "mov r5, #0");
-    trampoline_hook_before(0x10701248, fsa_ioctl0x28_hook);
+    U32_PATCH_K(0x10701248, asm_fsa_ioctl0x28_hook);
     trampoline_blreplace(0x10704540, fsa_ioctlv_hook);
     trampoline_blreplace(0x107044f0, fsa_ioctl_hook);
     trampoline_blreplace(0x10704458, fsa_ios_close_hook);
