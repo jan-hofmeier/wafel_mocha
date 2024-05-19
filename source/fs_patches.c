@@ -19,7 +19,7 @@ typedef struct __attribute__((packed)) {
     ipcmessage ipcmessage;
 } ResourceRequest;
 
-FSAClientHandle *patchedClientHandles[PATCHED_CLIENT_HANDLES_MAX_COUNT];
+FSAClientHandle *patchedClientHandles[PATCHED_CLIENT_HANDLES_MAX_COUNT] = { };
 
 static int fsa_ioctlv_hook(ResourceRequest *param_1, uint32_t u2, uint32_t u3, int r3,  int (*org_ioctlv)(ResourceRequest *, uint32_t, uint32_t)){
     FSAClientHandle *clientHandle = (FSAClientHandle *) get_handle_from_val(param_1->ipcmessage.fd);
