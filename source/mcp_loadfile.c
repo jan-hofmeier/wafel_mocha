@@ -104,7 +104,7 @@ static RPXFileReplacements *gDynamicReplacements[5] = {};
 
 static const RPXFileReplacements gDefaultReplacements[] = {
         // Redirect men.rpx [ENVIRONMENT]/root.rpx until IPC_CUSTOM_MEN_RPX_HOOK_COMPLETED has been called. (e.g. to init PPC homebrew after iosu-reload)
-        {REPLACEMENT_TYPE_UNTIL_MEM_HOOK_COMPLETED_BUT_BY_PATH, REPLACEMENT_LIFETIME_UNLIMITED, "men.rpx", "root.rpx", PATH_RELATIVE_TO_ENVIRONMENT, 0, 0, 0},
+        {REPLACEMENT_TYPE_UNTIL_MEM_HOOK_COMPLETED_BUT_BY_PATH, REPLACEMENT_LIFETIME_ONE_RPX_LAUNCH, "men.rpx", "root.rpx", PATH_RELATIVE_TO_ENVIRONMENT, 0, 0, 0},
         {REPLACEMENT_TYPE_UNTIL_MEM_HOOK_COMPLETED_BUT_BY_PATH, REPLACEMENT_LIFETIME_UNLIMITED, "WAGONU.rpx", "root.rpx", PATH_RELATIVE_TO_ENVIRONMENT, 0, 0, 0},
         // Redirect men.rpx to [ENVIRONMENT]/men.rpx
         {REPLACEMENT_TYPE_BY_PATH, REPLACEMENT_LIFETIME_UNLIMITED, "men.rpx", "men.rpx", PATH_RELATIVE_TO_ENVIRONMENT, 0, 0, 0},
